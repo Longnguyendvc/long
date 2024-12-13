@@ -1,0 +1,478 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DVC IPA - GHOST</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #4a4a4a;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #565656;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        .input-group input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0.2));
+            transition: all 0.3s ease;
+        }
+        .btn:hover:before {
+            top: 100%;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(45deg, #2980b9, #3498db);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
+        }
+        .btn-secondary {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(46, 204, 113, 0.3);
+        }
+        .btn-tertiary {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        .btn-tertiary:hover {
+            background: linear-gradient(45deg, #c0392b, #e74c3c);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(231, 76, 60, 0.3);
+        }
+        #githubLinkResult, #passwordResult {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .result {
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        .success {
+            color: #2ecc71;
+        }
+        .error {
+            color: #e74c3c;
+        }
+        @media (max-width: 768px) {
+            .button-group {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GHOST - DVC IPA</h1>
+        <div class="input-group">
+            <label for="appNameInput">Tên ứng dụng:</label>
+            <input type="text" id="appNameInput" placeholder="Nhập tên ứng dụng">
+        </div>
+        <div class="input-group">
+            <label for="gameNameInput">Tên game:</label>
+            <input type="text" id="gameNameInput" placeholder="Nhập tên game (ví dụ: playtogether)">
+        </div>
+        <div id="dayInputs"></div>
+        <div class="button-group">
+            <button id="shortenAllButton" class="btn btn-primary">Rút gọn tất cả</button>
+            <button id="updateGithubLinkButton" class="btn btn-secondary">Cập nhật link Github</button>
+            <button id="copyButton" class="btn btn-tertiary">Sao chép HTML</button>
+            <button id="createFileButton" class="btn btn-tertiary">Tạo file index.html</button>
+            <button id="generatePasswordButton" class="btn btn-primary">Tạo mật khẩu ngẫu nhiên</button>
+            <button id="copyPasswordButton" class="btn btn-secondary">Sao chép mật khẩu</button>
+        </div>
+        <div id="githubLinkResult"></div>
+        <div id="passwordResult"></div>
+    </div>
+
+    <script>
+        const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+        let shortenedLinks = {};
+
+        const originalGithubHTML = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DVC IPA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        .profile-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 50px auto;
+            background: #fff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .profile-header {
+            background-color: #6c63ff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .profile-header h1 {
+            margin: 0;
+        }
+        .profile-content {
+            padding: 20px;
+        }
+        .profile-content img {
+            border-radius: 50%;
+            max-width: 150px;
+            display: block;
+            margin: 0 auto;
+        }
+        .profile-content h2 {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .profile-content p {
+            text-align: center;
+            color: #555;
+        }
+        .profile-social {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .profile-social a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #6c63ff;
+            font-size: 20px;
+        }
+        .day-content {
+            display: none;
+        }
+        .button {
+            background-color: #6c63ff;
+            border: none;
+            color: #FFFFFF;
+            padding: 0.375rem 0.66rem;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        a {
+            text-decoration: none;
+            color: #FFFFFF;
+        }
+    </style>
+    <script>
+        function showDateTime() {
+            const now = new Date();
+            const dateTimeString = now.toLocaleString('vi-VN');
+            document.getElementById('dateTime').textContent = dateTimeString;
+        }
+        window.onload = showDateTime;
+    <\/script>
+</head>
+<body>
+    <div class="profile-container">
+        <div class="profile-header">
+            <h1>DVC IPA </h1>
+        </div>
+        <div class="profile-content">
+            <img src="https://thinhkk019.github.io/thinhkk/DVC.png" alt="Ảnh đại diện">
+            <h2>Link lấy key Legend Of Fireball</h2>
+            <p id="dateTime"></p>
+            <center>
+                <div id="Monday" class="day-content"> 
+                    <p class="button">
+                        <a href="https://yeumoney.com/yJIX" title="thuhai">Click vào đây để tiếp tục…</a>
+                    </p> 
+                </div>
+                <div id="Tuesday" class="day-content"> 
+                    <p class="button">
+                        <a href="https://yeumoney.com/h_JSd9POG" title="thuba">Click vào đây để tiếp tục…</a> 
+                    </p> 
+                </div>
+                <div id="Wednesday" class="day-content"> 
+                    <p class="button">
+                        <a href="https://yeumoney.com/dEvCjB" title="thutu">Click vào đây để tiếp tục…</a> 
+                    </p> 
+                </div>
+                <div id="Thursday" class="day-content"> 
+                    <p class="button">
+                        <a href="https://yeumoney.com/tO6h5uwT-" title="thunam">Click vào đây để tiếp tục…</a>
+                    </p> 
+                </div>
+                <div id="Friday" class="day-content"> 
+                    <p class="button">
+                        <a href="https://yeumoney.com/B6ST" title="thusau">Click vào đây để tiếp tục…</a>
+                    </p> 
+                </div>
+                <div id="Saturday" class="day-content"> 
+                    <p class="button">
+                        <a href="https://yeumoney.com/9byY" title="thubay">Click vào đây để tiếp tục…</a>
+                    </p>   
+                </div>
+                <div id="Sunday" class="day-content"> 
+                    <p class="button">
+                        <a href="https://yeumoney.com/hL00q4N" title="chunhat">Click vào đây để tiếp tục…</a>
+                    </p> 
+                </div> 
+            </center>
+            <script>
+                // Tạo một mảng các ngày trong tuần
+                const daysOfWeek = [
+                    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+                ];
+                // Lấy ngày hiện tại
+                const currentDate = new Date();
+                const currentDay = currentDate.getDay();
+                // Lấy tên chính xác của ngày hiện tại
+                const today = daysOfWeek[currentDay];
+                // Hiển thị nội dung của ngày hiện tại
+                document.getElementById(today).style.display = 'block';
+            <\/script>
+            <div class="profile-social">
+                <a href="https://t.me/dvcipaios" title="KhoGame"> Kho game </a>
+                <a href="https://t.me/dvcipafree" title="NhomChat">Nhóm Chat</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+
+        async function getShortenedLink(urlToShorten) {
+            const token = '06cba1c6bfab33d69d211e3eb8aac9427006b6dec371151e58e98c45f9ac8506';
+            const apiUrl = `https://yeumoney.com/QL_api.php?token=${token}&format=json&url=${encodeURIComponent(urlToShorten)}`;
+
+            try {
+                const response = await fetch(apiUrl);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    return result.shortenedUrl;
+                } else {
+                    throw new Error(result.status);
+                }
+            } catch (error) {
+                throw new Error(`Lỗi kết nối: ${error.message}`);
+            }
+        }
+
+        async function shortenAllLinks() {
+            for (let i = 0; i < days.length; i++) {
+                const input = document.getElementById(`urlInput${i}`);
+                const result = document.getElementById(`result${i}`);
+                
+                if (input.value) {
+                    try {
+                        const shortenedUrl = await getShortenedLink(input.value);
+                        shortenedLinks[days[i]] = shortenedUrl;
+                        result.innerText = `Link rút gọn: ${shortenedUrl}`;
+                        result.className = 'result success';
+                    } catch (error) {
+                        result.innerText = `Lỗi: ${error.message}`;
+                        result.className = 'result error';
+                    }
+                } else {
+                    result.innerText = '';
+                }
+            }
+        }
+
+        function updateGithubLink() {
+            let updatedHTML = originalGithubHTML;
+            const dayIds = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const dayNames = ['thuhai', 'thuba', 'thutu', 'thunam', 'thusau', 'thubay', 'chunhat'];
+
+            for (let i = 0; i < days.length; i++) {
+                if (shortenedLinks[days[i]]) {
+                    const regex = new RegExp(`<a href="[^"]*" title="${dayNames[i]}"`);
+                    
+                    updatedHTML = updatedHTML.replace(regex, `<a href="${shortenedLinks[days[i]]}" title="${dayNames[i]}"`);
+                }
+            }
+
+            const appName = document.getElementById('appNameInput').value || 'Legend Of Fireball';
+            updatedHTML = updatedHTML.replace(
+                /<h2>Link lấy key (.*?)<\/h2>/,
+                `<h2>Link lấy key ${appName}</h2>`
+            );
+
+            document.getElementById('githubLinkResult').innerText = updatedHTML;
+        }
+
+        function copyToClipboard() {
+            const githubLinkResult = document.getElementById('githubLinkResult');
+            const textArea = document.createElement('textarea');
+            textArea.value = githubLinkResult.innerText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Đã sao chép HTML vào clipboard!');
+        }
+
+        function createDayInputs() {
+            const container = document.getElementById('dayInputs');
+            days.forEach((day, index) => {
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'input-group';
+
+                const label = document.createElement('label');
+                label.innerText = day + ':';
+                label.setAttribute('for', `urlInput${index}`);
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.id = `urlInput${index}`;
+                input.placeholder = 'Nhập link cần rút gọn';
+
+                const result = document.createElement('p');
+                result.id = `result${index}`;
+                result.className = 'result';
+
+                inputGroup.appendChild(label);
+                inputGroup.appendChild(input);
+                inputGroup.appendChild(result);
+
+                container.appendChild(inputGroup);
+            });
+        }
+
+        function createIndexFile() {
+            const content = document.getElementById('githubLinkResult').innerText;
+            const blob = new Blob([content], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function generateRandomPassword() {
+            const gameName = document.getElementById('gameNameInput').value || 'Subwaysurf';
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            let password = '';
+
+            days.forEach((day, index) => {
+                const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+                const gameNameWithRandomCase = gameName.split('').map(char => Math.random() > 0.5 ? char.toUpperCase() : char.toLowerCase()).join('');
+                password += `${day}:${gameNameWithRandomCase}${randomNum}`;
+                if (index < days.length - 1) {
+                    password += '||';
+                }
+            });
+
+            document.getElementById('passwordResult').innerText = password;
+        }
+
+        function copyPassword() {
+            const passwordResult = document.getElementById('passwordResult');
+            const textArea = document.createElement('textarea');
+            textArea.value = passwordResult.innerText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Đã sao chép mật khẩu vào clipboard!');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            createDayInputs();
+            document.getElementById('shortenAllButton').addEventListener('click', shortenAllLinks);
+            document.getElementById('updateGithubLinkButton').addEventListener('click', updateGithubLink);
+            document.getElementById('copyButton').addEventListener('click', copyToClipboard);
+            document.getElementById('createFileButton').addEventListener('click', createIndexFile);
+            document.getElementById('generatePasswordButton').addEventListener('click', generateRandomPassword);
+            document.getElementById('copyPasswordButton').addEventListener('click', copyPassword);
+        });
+    </script>
+</body>
+</html>
