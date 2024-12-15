@@ -109,7 +109,7 @@
             transform: translateY(-3px);
             box-shadow: 0 6px 12px rgba(231, 76, 60, 0.3);
         }
-        #githubLinkResult, #passwordResult {
+        #githubLinkResult, #passwordResult, #offsetByteResults, #randomResults {
             margin-top: 30px;
             padding: 15px;
             background-color: #f9f9f9;
@@ -153,6 +153,22 @@
             <input type="text" id="gameNameInput" placeholder="Nhập tên game (ví dụ: playtogether)">
         </div>
         <div id="dayInputs"></div>
+        <div class="input-group">
+            <label for="offsetInput">Offset:</label>
+            <input type="text" id="offsetInput" placeholder="Nhập offset">
+        </div>
+        <div class="input-group">
+            <label for="byteInput">Byte:</label>
+            <input type="text" id="byteInput" placeholder="Nhập byte">
+        </div>
+        <div class="input-group">
+            <label for="codeInput">Nhập mã:</label>
+            <input type="text" id="codeInput" placeholder='Ví dụ: ActiveCodePatch("Frameworks/UnityFramework.framework/UnityFramework", 0x23a752c, "C0035FD6");'>
+        </div>
+        <div class="input-group">
+            <label for="randomCountInput">Số lượng random:</label>
+            <input type="number" id="randomCountInput" placeholder="Nhập số lượng random" min="1">
+        </div>
         <div class="button-group">
             <button id="shortenAllButton" class="btn btn-primary">Rút gọn tất cả</button>
             <button id="updateGithubLinkButton" class="btn btn-secondary">Cập nhật link Github</button>
@@ -160,14 +176,21 @@
             <button id="createFileButton" class="btn btn-tertiary">Tạo file index.html</button>
             <button id="generatePasswordButton" class="btn btn-primary">Tạo mật khẩu ngẫu nhiên</button>
             <button id="copyPasswordButton" class="btn btn-secondary">Sao chép mật khẩu</button>
+            <button id="addOffsetByteButton" class="btn btn-secondary">Thêm offset và byte mới</button>
+            <button id="copyNewResultButton" class="btn btn-primary">Sao chép kết quả cho offset và byte</button>
+            <button id="randomOffsetByteButton" class="btn btn-secondary">Random ngẫu nhiên offset và byte</button>
+            <button id="copyRandomResultButton" class="btn btn-primary">Sao chép kết quả random</button>
         </div>
         <div id="githubLinkResult"></div>
         <div id="passwordResult"></div>
+        <div id="offsetByteResults"></div>
+        <div id="randomResults"></div>
     </div>
 
     <script>
         const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
         let shortenedLinks = {};
+        let offsetByteList = [];
 
         const originalGithubHTML = `<!DOCTYPE html>
 <html lang="vi">
@@ -332,6 +355,7 @@
                 const response = await fetch(apiUrl);
                 const result = await response.json();
 
+                
                 if (result.status === 'success') {
                     return result.shortenedUrl;
                 } else {
@@ -464,6 +488,111 @@
             alert('Đã sao chép mật khẩu vào clipboard!');
         }
 
+        function addOffsetByte() {
+            const offset = document.getElementById('offsetInput').value;
+            const byte = document.getElementById('byteInput').value;
+            if(offset && byte) {
+                offsetByteList.push({offset, byte});
+                updateOffsetByteResults();
+                document.getElementById('offsetInput').value = '';
+                document.getElementById('byteInput').value = '';
+            }
+        }
+
+        function updateOffsetByteResults() {
+            const resultsDiv = document.getElementById('offsetByteResults');
+            let newCode = `h5gg.require(7.9); 
+var h5frida=h5gg.loadPlugin("h5frida", "h5frida-16.0.10.dylib");
+if(!h5frida) throw "Không thấy Frida";
+
+function ActiveCodePatch(fpath, vaddr, bytes) {
+    if(!h5frida.ActiveCodePatch(fpath, vaddr, bytes)) {
+        var result = h5frida.ApplyCodePatch(fpath, vaddr, bytes);
+    } return true;
+}
+function DeactiveCodePatch(fpath, vaddr, bytes) {
+    return h5frida.DeactiveCodePatch(fpath, vaddr, bytes);
+}
+
+if(typeof h5gg!='undefined') {
+    setWindowDrag(0, 0, 400, 80);
+}
+
+`;
+
+            offsetByteList.forEach(item => {
+                newCode += `ActiveCodePatch("Frameworks/UnityFramework.framework/UnityFramework", ${item.offset}, "${item.byte}");\n`;
+            });
+
+            newCode += `\n`;
+
+            offsetByteList.forEach(item => {
+                newCode += `DeactiveCodePatch("Frameworks/UnityFramework.framework/UnityFramework", ${item.offset}, "${item.byte}");\n`;
+            });
+
+            resultsDiv.innerHTML = '<pre>' + newCode + '</pre>';
+        }
+
+        function copyNewResult() {
+            const resultsDiv = document.getElementById('offsetByteResults');
+            const textArea = document.createElement('textarea');
+            textArea.value = resultsDiv.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Đã sao chép kết quả mới vào clipboard!');
+        }
+
+        function parseCodeInput(input) {
+            const regex = /ActiveCodePatch\("([^"]+)",\s*(0x[0-9a-fA-F]+),\s*"([^"]+)"\);/;
+            const match = input.match(regex);
+            if (match) {
+                return {
+                    framework: match[1],
+                    offset: match[2],
+                    byte: match[3]
+                };
+            }
+            return null;
+        }
+
+        function generateRandomHex(length) {
+            return Array.from({length}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+        }
+
+        function randomOffsetByte() {
+            const codeInput = document.getElementById('codeInput').value;
+            const count = parseInt(document.getElementById('randomCountInput').value, 10);
+            const parsedCode = parseCodeInput(codeInput);
+            
+            if (!parsedCode || isNaN(count) || count < 1) {
+                alert('Vui lòng nhập mã hợp lệ và số lượng random');
+                return;
+            }
+
+            const results = [];
+            for (let i = 0; i < count; i++) {
+                const randomOffset = '0x' + generateRandomHex(8);
+                const randomByte = generateRandomHex(8);
+                results.push(`ActiveCodePatch("${parsedCode.framework}", ${randomOffset}, "${randomByte}");`);
+            }
+
+            const resultsDiv = document.getElementById('randomResults');
+            resultsDiv.innerHTML = '<pre>' + results.join('\n') + '</pre>';
+        }
+
+        function copyRandomResult() {
+            const resultsDiv = document.getElementById('randomResults');
+            const textArea = document.createElement('textarea');
+            textArea.value = resultsDiv.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Đã sao chép kết quả random vào clipboard!');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             createDayInputs();
             document.getElementById('shortenAllButton').addEventListener('click', shortenAllLinks);
@@ -472,6 +601,10 @@
             document.getElementById('createFileButton').addEventListener('click', createIndexFile);
             document.getElementById('generatePasswordButton').addEventListener('click', generateRandomPassword);
             document.getElementById('copyPasswordButton').addEventListener('click', copyPassword);
+            document.getElementById('addOffsetByteButton').addEventListener('click', addOffsetByte);
+            document.getElementById('copyNewResultButton').addEventListener('click', copyNewResult);
+            document.getElementById('randomOffsetByteButton').addEventListener('click', randomOffsetByte);
+            document.getElementById('copyRandomResultButton').addEventListener('click', copyRandomResult);
         });
     </script>
 </body>
